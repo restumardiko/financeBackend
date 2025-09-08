@@ -8,7 +8,9 @@ const router = express.Router();
 //   next();
 // };
 // router.use(timeLog);
-
+router.post("/signUp", handler.signUp);
+router.post("/logIn", handler.logIn);
+router.post("/account", handler.account);
 router.post("/income", handler.addIncome);
 router.post("/expense", handler.addExpense);
 router.get("/income", handler.showIncome);
