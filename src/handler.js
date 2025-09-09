@@ -105,27 +105,30 @@ const addExpense = async (req, res) => {
   }
 };
 
-const showIncome = async (req, res) => {
+const transactions = async (req, res) => {
   try {
+    const { user_id } = req.query;
 
+    const result = await pool.query(
+      "SELECT transactions.amount,categories.name,categories.type,accounts.name,transactions.transaction_date FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1",
+      [user_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(200).json({
+        message: "No transactions found",
+        data: [],
+      });
+    }
+
+    res.status(200).json({
+      message: "data fetching successfully",
+
+      data: result.rows,
+    });
   } catch (err) {
- 
-  }
-};
-
-const showExpense = async (req, res) => {
-  try {
-  
-  } catch () {
-  
-  }
-};
-
-const showBoth = async (req, res) => {
-  try {
- 
-  } catch () {
- 
+    console.error("DB ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -142,9 +145,7 @@ exports.default = {
   account,
   addIncome,
   addExpense,
-  showIncome,
-  showExpense,
-  showBoth,
+  transactions,
   editIncome,
   editExpense,
   deleteIncome,
