@@ -107,10 +107,11 @@ const addExpense = async (req, res) => {
 
 const transactions = async (req, res) => {
   try {
-    const { user_id } = req.query;
+    const { user_id } = req.params;
+    console.log(user_id);
 
     const result = await pool.query(
-      "SELECT transactions.amount,categories.name,categories.type,accounts.name,transactions.transaction_date FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1",
+      `SELECT  categories.category_name,transactions.amount, transactions.note, categories.type,accounts.account_name,transactions.transaction_date FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1`,
       [user_id]
     );
 
@@ -132,7 +133,35 @@ const transactions = async (req, res) => {
   }
 };
 
-const editIncome = async (req, res) => {};
+const editTransaction = async (req, res) => {
+  try {
+    const { user_id, transaction_id } = req.params;
+    const { account_id, category_id, amount, note, transaction_date } =
+      req.body;
+
+    const result = await pool.query(
+      `UPDATE transactions SET account_id=$1,category_id=$2,amount=$3,note=$4,transaction_date=$5 WHERE id=$6 AND user_id = $7 RETURNING *`,
+      [
+        account_id,
+        category_id,
+        amount,
+        note,
+        transaction_date,
+        transaction_id,
+        user_id,
+      ]
+    );
+
+    res.status(200).json({
+      message: "Edit income successfully",
+
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("DB ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 const editExpense = async (req, res) => {};
 
@@ -146,7 +175,7 @@ exports.default = {
   addIncome,
   addExpense,
   transactions,
-  editIncome,
+  editTransaction,
   editExpense,
   deleteIncome,
   deleteExpense,
