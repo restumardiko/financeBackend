@@ -13,11 +13,11 @@ router.post("/logIn", handler.logIn);
 router.post("/account", handler.account);
 router.post("/income", handler.addIncome);
 router.post("/expense", handler.addExpense);
-
 router.get("/transactions/:user_id", handler.transactions);
 router.put("/transaction/:user_id/:transaction_id", handler.editTransaction);
-router.put("/expense", handler.editExpense);
-router.delete("/income", handler.deleteIncome);
-router.delete("/expense", handler.deleteExpense);
+router.delete(
+  "/transaction/:user_id/:transaction_id",
+  handler.deleteTransaction
+);
 
 module.exports = router;

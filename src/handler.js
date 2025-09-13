@@ -163,10 +163,25 @@ const editTransaction = async (req, res) => {
   }
 };
 
-const editExpense = async (req, res) => {};
+const deleteTransaction = async (req, res) => {
+  try {
+    const { user_id, transaction_id } = req.params;
 
-const deleteIncome = async (req, res) => {};
-const deleteExpense = async (req, res) => {};
+    const result = await pool.query(
+      `DELETE FROM transactions WHERE id=$1 AND user_id=$2 RETURNING *`,
+      [transaction_id, user_id]
+    );
+
+    res.status(200).json({
+      message: "delete transaction succesfully",
+
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("DB ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 exports.default = {
   signUp,
@@ -176,7 +191,5 @@ exports.default = {
   addExpense,
   transactions,
   editTransaction,
-  editExpense,
-  deleteIncome,
-  deleteExpense,
+  deleteTransaction,
 };
