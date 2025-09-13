@@ -1,14 +1,10 @@
 const express = require("express");
 const handler = require("./handler.js").default;
 const router = express.Router();
+const auth = require("./auth.js");
 
-//middleware that is specific to this router
-// const timeLog = (req, res, next) => {
-//   console.log("Time: ", Date.now());
-//   next();
-// };
-// router.use(timeLog);
 router.post("/signUp", handler.signUp);
+router.use(auth);
 router.post("/logIn", handler.logIn);
 router.post("/account", handler.account);
 router.post("/income", handler.addIncome);
