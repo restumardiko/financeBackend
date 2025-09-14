@@ -1,7 +1,9 @@
 const bcrypt = require("bcryptjs");
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const pool = require("../db/index.js");
+const jwt = require("jsonwebtoken");
 app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
@@ -31,10 +33,9 @@ const logIn = async (req, res) => {
     const result = await pool.query("SELECT * FROM users WHERE name =$1", [
       name,
     ]);
-    console.log(result);
 
     if (result.rowCount == 0) {
-      res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
     const isMatch = await bcrypt.compare(
       password,
@@ -44,9 +45,15 @@ const logIn = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ message: "password wrong" });
     }
+    const token = jwt.sign(
+      { userId: result.rows[0].id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
     res
       .status(200)
-      .json({ message: "login succesfully", data: result.rows[0].id });
+      .json({ token, message: "login succesfully", data: result.rows[0].id });
   } catch (err) {
     console.error("DB ERROR:", err);
     res.status(500).json({ error: err.message });
