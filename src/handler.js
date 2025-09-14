@@ -1,5 +1,4 @@
-const { nanoid } = require("nanoid");
-
+const bcrypt = require("bcryptjs");
 const express = require("express");
 const app = express();
 const pool = require("../db/index.js");
@@ -9,13 +8,16 @@ app.use(express.urlencoded({ extended: true })); // for parsing application/x-ww
 const signUp = async (req, res) => {
   try {
     const { name, password } = req.body;
+    const password_hash = await bcrypt.hash(password, 10);
+
     const result = await pool.query(
       "INSERT INTO users  (name,password_hash) VALUES ($1,$2) RETURNING *",
-      [name, password]
+      [name, password_hash]
     );
 
     res.status(200).json({
       message: "sign up succesfully",
+      data: result.rows[0].id,
     });
   } catch (err) {
     console.error("DB ERROR:", err);
@@ -25,21 +27,26 @@ const signUp = async (req, res) => {
 const logIn = async (req, res) => {
   try {
     const { name, password } = req.body;
-    const result = await pool.query(
-      "SELECT * FROM users WHERE name =$1 AND password_hash= $2 ",
-      [name, password]
+
+    const result = await pool.query("SELECT * FROM users WHERE name =$1", [
+      name,
+    ]);
+    console.log(result);
+
+    if (result.rowCount == 0) {
+      res.status(404).json({ message: "User not found" });
+    }
+    const isMatch = await bcrypt.compare(
+      password,
+      result.rows[0].password_hash
     );
 
-    if (result.rowCount == 1) {
-      res.status(200).json({
-        message: "login succesfully",
-        data: result.rows[0].id,
-      });
-    } else {
-      res.status(500).json({
-        message: "name or password wrong !",
-      });
+    if (!isMatch) {
+      return res.status(401).json({ message: "password wrong" });
     }
+    res
+      .status(200)
+      .json({ message: "login succesfully", data: result.rows[0].id });
   } catch (err) {
     console.error("DB ERROR:", err);
     res.status(500).json({ error: err.message });
