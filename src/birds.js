@@ -4,8 +4,8 @@ const router = express.Router();
 const auth = require("./auth.js");
 
 router.post("/signUp", handler.signUp);
-router.use(auth);
 router.post("/logIn", handler.logIn);
+router.use(auth);
 router.post("/account", handler.account);
 router.post("/income", handler.addIncome);
 router.post("/expense", handler.addExpense);

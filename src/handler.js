@@ -29,6 +29,7 @@ const signUp = async (req, res) => {
 const logIn = async (req, res) => {
   try {
     const { name, password } = req.body;
+    console.log(req.header);
 
     const result = await pool.query("SELECT * FROM users WHERE name =$1", [
       name,
@@ -64,7 +65,7 @@ const account = async (req, res) => {
   try {
     const { user_id, name, account_type, balance } = req.body;
     const result = await pool.query(
-      "INSERT INTO accounts (user_id,name,type,balance)VALUES ($1,$2,$3,$4)RETURNING *",
+      "INSERT INTO accounts (user_id,account_name,type,balance)VALUES ($1,$2,$3,$4)RETURNING *",
       [user_id, name, account_type, balance]
     );
     console.log(result);
