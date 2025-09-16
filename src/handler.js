@@ -6,6 +6,20 @@ const pool = require("../db/index.js");
 const jwt = require("jsonwebtoken");
 app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+const crypto = require("crypto");
+
+function generateRefreshToken() {
+  return crypto.randomBytes(64).toString("hex");
+}
+
+const refresh = async (req, res) => {
+  try {
+  } catch {}
+};
+const logOut = async (req, res) => {
+  try {
+  } catch {}
+};
 
 const signUp = async (req, res) => {
   try {
@@ -29,7 +43,6 @@ const signUp = async (req, res) => {
 const logIn = async (req, res) => {
   try {
     const { name, password } = req.body;
-    console.log(req.header);
 
     const result = await pool.query("SELECT * FROM users WHERE name =$1", [
       name,
@@ -51,6 +64,19 @@ const logIn = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
+    const refreshToken = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await pool.query(
+      "UPDATE users SET refresh_token = $1,refresh_token_expires=$2 WHERE id=$3",
+      [refreshToken, expiresAt, result.rows[0].id]
+    );
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 1 * 60 * 60 * 1000,
+    });
 
     res
       .status(200)
@@ -199,6 +225,7 @@ const deleteTransaction = async (req, res) => {
 };
 
 exports.default = {
+  refresh,
   signUp,
   logIn,
   account,
