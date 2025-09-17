@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("./auth.js");
 
 router.post("/signUp", handler.signUp);
+router.delete("/logOUt", handler.logOut);
 router.post("/refresh", handler.refresh);
 router.post("/logIn", handler.logIn);
 router.use(auth);

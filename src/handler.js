@@ -1,11 +1,13 @@
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
+
 const express = require("express");
 const app = express();
 const pool = require("../db/index.js");
 const jwt = require("jsonwebtoken");
 app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+
 const crypto = require("crypto");
 
 function generateRefreshToken() {
@@ -14,10 +16,42 @@ function generateRefreshToken() {
 
 const refresh = async (req, res) => {
   try {
-  } catch {}
+    const refreshToken = req.cookies.refreshToken;
+    console.log(req.cookies);
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "No refresh token" });
+    }
+    const result = await pool.query(
+      "SELECT id,refresh_token_expires FROM users WHERE refresh_token=$1",
+      [refreshToken]
+    );
+    console.log(result);
+
+    const { id, refresh_token_expires } = result.rows[0];
+
+    if (result.rows.length === 0) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    if (new Date() > refresh_token_expires) {
+      return res.status(403).json({ message: "Refresh token expired" });
+    }
+
+    const newAccessToken = jwt.sign({ userId: id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.status(200).json({ token: newAccessToken });
+  } catch (err) {
+    console.error("DB ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
 };
 const logOut = async (req, res) => {
   try {
+    console.log("bajingan");
+    res.status(200);
   } catch {}
 };
 
@@ -73,7 +107,7 @@ const logIn = async (req, res) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: false,
       sameSite: "strict",
       maxAge: 1 * 60 * 60 * 1000,
     });
@@ -226,6 +260,7 @@ const deleteTransaction = async (req, res) => {
 
 exports.default = {
   refresh,
+  logOut,
   signUp,
   logIn,
   account,
