@@ -50,9 +50,24 @@ const refresh = async (req, res) => {
 };
 const logOut = async (req, res) => {
   try {
-    console.log("bajingan");
-    res.status(200);
-  } catch {}
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(400).json({ message: "No refresh token found" });
+    }
+
+    //
+    await pool.query(
+      "UPDATE users SET refresh_token = NULL, refresh_token_expires = NULL WHERE refresh_token=$1",
+      [refreshToken]
+    );
+
+    res.clearCookie("refreshToken");
+
+    res.status(200).json({ message: "Logout successful" });
+  } catch (err) {
+    console.error("DB ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 const signUp = async (req, res) => {
