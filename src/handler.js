@@ -139,13 +139,29 @@ const account = async (req, res) => {
   console.log("add account executed");
   try {
     const { user_id, name, account_type, balance } = req.body;
+
+    // const result = await pool.query(
+    //   "INSERT INTO accounts (user_id,account_name,type,balance)VALUES ($1,$2,$3,$4)RETURNING *",
+    //   [user_id, name, account_type, balance]
+    // );
     const result = await pool.query(
-      "INSERT INTO accounts (user_id,account_name,type,balance)VALUES ($1,$2,$3,$4)RETURNING *",
-      [user_id, name, account_type, balance]
+      "SELECT id FROM accounts WHERE user_id=$1 AND account_name = $2",
+      [user_id, name]
     );
     console.log(result);
-    res.status(200).json({
-      message: "add account succesfully",
+    if (result.rowCount == 0) {
+      const result = await pool.query(
+        "INSERT INTO accounts (user_id,account_name,type,balance)VALUES ($1,$2,$3,$4)RETURNING *",
+        [user_id, name, account_type, balance]
+      );
+      console.log("ini ketika sudah ditambahkan", result);
+
+      res.status(200).json({
+        message: "add account succesfully",
+      });
+    }
+    res.status(500).json({
+      message: "account already added",
       data: result.rows[0],
     });
   } catch (err) {
