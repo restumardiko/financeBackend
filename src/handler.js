@@ -152,6 +152,29 @@ const account = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+const deleteAccount = async (req, res) => {
+  console.log("delete account executed");
+  try {
+    const { user_id, account_id } = req.body;
+    const result = await pool.query(
+      "DELETE FROM accounts WHERE id=$1 AND user_id=$2 RETURNING *",
+      [account_id, user_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(200).json({
+        message: "No account found",
+        data: [],
+      });
+    }
+    console.log(result);
+    res.status(200).json({
+      message: "delete account succesfully",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 const addIncome = async (req, res) => {
   try {
@@ -261,6 +284,12 @@ const deleteTransaction = async (req, res) => {
       `DELETE FROM transactions WHERE id=$1 AND user_id=$2 RETURNING *`,
       [transaction_id, user_id]
     );
+    if (result.rows.length === 0) {
+      return res.status(200).json({
+        message: "No transactions found",
+        data: [],
+      });
+    }
 
     res.status(200).json({
       message: "delete transaction succesfully",
@@ -279,6 +308,7 @@ exports.default = {
   signUp,
   logIn,
   account,
+  deleteAccount,
   addIncome,
   addExpense,
   transactions,

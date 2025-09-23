@@ -9,6 +9,7 @@ router.post("/refresh", handler.refresh);
 router.post("/logIn", handler.logIn);
 router.use(auth);
 router.post("/account", handler.account);
+router.delete("/account", handler.deleteAccount);
 router.post("/income", handler.addIncome);
 router.post("/expense", handler.addExpense);
 router.get("/transactions/:user_id", handler.transactions);
