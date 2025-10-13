@@ -8,15 +8,15 @@ router.delete("/logOUt", handler.logOut);
 router.post("/refresh", handler.refresh);
 router.post("/logIn", handler.logIn);
 router.use(auth);
+
+router.get("/mainpage", handler.mainpage);
 router.post("/account", handler.account);
+router.get("/account", handler.showAccount);
 router.delete("/account", handler.deleteAccount);
 router.post("/income", handler.addIncome);
 router.post("/expense", handler.addExpense);
-router.get("/transactions/:user_id", handler.transactions);
-router.put("/transaction/:user_id/:transaction_id", handler.editTransaction);
-router.delete(
-  "/transaction/:user_id/:transaction_id",
-  handler.deleteTransaction
-);
+router.get("/transactions/", handler.transactions);
+router.put("/transaction/:transaction_id", handler.editTransaction);
+router.delete("/transaction/:transaction_id", handler.deleteTransaction);
 
 module.exports = router;

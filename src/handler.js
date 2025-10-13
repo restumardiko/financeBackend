@@ -72,12 +72,12 @@ const logOut = async (req, res) => {
 
 const signUp = async (req, res) => {
   try {
-    const { name, password } = req.body;
+    const { name, email, password } = req.body;
     const password_hash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      "INSERT INTO users  (name,password_hash) VALUES ($1,$2) RETURNING *",
-      [name, password_hash]
+      "INSERT INTO users  (name,password_hash,email) VALUES ($1,$2,$3) RETURNING *",
+      [name, password_hash, email]
     );
 
     res.status(200).json({
@@ -91,10 +91,10 @@ const signUp = async (req, res) => {
 };
 const logIn = async (req, res) => {
   try {
-    const { name, password } = req.body;
+    const { email, password } = req.body;
 
-    const result = await pool.query("SELECT * FROM users WHERE name =$1", [
-      name,
+    const result = await pool.query("SELECT * FROM users WHERE email =$1", [
+      email,
     ]);
 
     if (result.rowCount == 0) {
@@ -127,18 +127,50 @@ const logIn = async (req, res) => {
       maxAge: 1 * 60 * 60 * 1000,
     });
 
-    res
-      .status(200)
-      .json({ token, message: "login succesfully", data: result.rows[0].id });
+    res.status(200).json({ token, message: "login succesfully" });
   } catch (err) {
     console.error("DB ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
+const mainpage = async (req, res) => {
+  try {
+    const user_id = req.user.userId;
+
+    const userResult = await pool.query(
+      "SELECT name FROM users WHERE id = $1",
+      [user_id]
+    );
+    const transactionResult = await pool.query(
+      "SELECT transactions.amount,categories.type,transactions.transaction_date,categories.category_name FROM transactions INNER JOIN categories ON transactions.category_id=categories.id  WHERE transactions.user_id=$1",
+      [user_id]
+    );
+    console.log(transactionResult);
+    if (transactionResult.rowCount == 0) {
+      res.status(200).json({
+        message: "mainpage executed on server",
+        data: "empty",
+        name: userResult.rows[0].name,
+      });
+    }
+
+    res.status(200).json({
+      message: "mainpage executed on server",
+
+      data: transactionResult.rows[0],
+      name: userResult.rows[0].name,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 const account = async (req, res) => {
   console.log("add account executed");
   try {
-    const { user_id, name, account_type, balance } = req.body;
+    const { name, account_type, balance } = req.body;
+    const user_id = req.user.userId;
 
     // const result = await pool.query(
     //   "INSERT INTO accounts (user_id,account_name,type,balance)VALUES ($1,$2,$3,$4)RETURNING *",
@@ -168,10 +200,40 @@ const account = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+const showAccount = async (req, res) => {
+  console.log("show all account");
+  try {
+    const user_id = req.user.userId;
+
+    // const result = await pool.query(
+    //   "INSERT INTO accounts (user_id,account_name,type,balance)VALUES ($1,$2,$3,$4)RETURNING *",
+    //   [user_id, name, account_type, balance]
+    // );
+    const result = await pool.query(
+      "SELECT id,account_name,type,balance FROM accounts WHERE user_id=$1 ",
+      [user_id]
+    );
+    console.log(result);
+    if (result.rowCount == 0) {
+      res.status(200).json({
+        message: "please add account",
+      });
+    }
+    res.status(200).json({
+      message: "account showed",
+      data: result.rows,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 const deleteAccount = async (req, res) => {
   console.log("delete account executed");
   try {
-    const { user_id, account_id } = req.body;
+    const { account_id } = req.body;
+    const user_id = req.user.userId;
     const result = await pool.query(
       "DELETE FROM accounts WHERE id=$1 AND user_id=$2 RETURNING *",
       [account_id, user_id]
@@ -194,7 +256,8 @@ const deleteAccount = async (req, res) => {
 
 const addIncome = async (req, res) => {
   try {
-    const { account_id, category_id, amount, note, transaction_date, user_id } =
+    const user_id = req.user.userId;
+    const { account_id, category_id, amount, note, transaction_date } =
       req.body;
 
     const result = await pool.query(
@@ -215,7 +278,8 @@ const addIncome = async (req, res) => {
 
 const addExpense = async (req, res) => {
   try {
-    const { account_id, category_id, amount, note, transaction_date, user_id } =
+    const user_id = req.user.userId;
+    const { account_id, category_id, amount, note, transaction_date } =
       req.body;
 
     const result = await pool.query(
@@ -236,8 +300,7 @@ const addExpense = async (req, res) => {
 
 const transactions = async (req, res) => {
   try {
-    const { user_id } = req.params;
-    console.log(user_id);
+    const user_id = req.user.userId;
 
     const result = await pool.query(
       `SELECT  categories.category_name,transactions.amount, transactions.note, categories.type,accounts.account_name,transactions.transaction_date FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1`,
@@ -264,7 +327,8 @@ const transactions = async (req, res) => {
 
 const editTransaction = async (req, res) => {
   try {
-    const { user_id, transaction_id } = req.params;
+    const user_id = req.user.userId;
+    const { transaction_id } = req.params;
     const { account_id, category_id, amount, note, transaction_date } =
       req.body;
 
@@ -294,7 +358,8 @@ const editTransaction = async (req, res) => {
 
 const deleteTransaction = async (req, res) => {
   try {
-    const { user_id, transaction_id } = req.params;
+    const user_id = req.user.userId;
+    const { transaction_id } = req.params;
 
     const result = await pool.query(
       `DELETE FROM transactions WHERE id=$1 AND user_id=$2 RETURNING *`,
@@ -323,7 +388,9 @@ exports.default = {
   logOut,
   signUp,
   logIn,
+  mainpage,
   account,
+  showAccount,
   deleteAccount,
   addIncome,
   addExpense,
