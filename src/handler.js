@@ -20,8 +20,6 @@ const refresh = async (req, res) => {
     client = await pool.connect();
     const refreshToken = req.cookies.refreshToken;
 
-    console.log("ini yang lo cari", req.cookies);
-
     if (!refreshToken) {
       return res.status(401).json({ message: "No refresh token" });
     }
@@ -136,7 +134,7 @@ const logIn = async (req, res) => {
       { expiresIn: "1h" }
     );
     const refreshToken = generateRefreshToken();
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
     await client.query(
       "UPDATE users SET refresh_token = $1,refresh_token_expires=$2 WHERE id=$3",
       [refreshToken, expiresAt, result.rows[0].id]
@@ -147,7 +145,7 @@ const logIn = async (req, res) => {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
-      maxAge: 10 * 60 * 60 * 1000,
+      maxAge: 1 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({ token, message: "login succesfully" });
@@ -160,39 +158,42 @@ const logIn = async (req, res) => {
   }
 };
 
-const mainpage = async (req, res) => {
+const userInformation = async (req, res) => {
   let client;
   try {
     client = await pool.connect();
     const user_id = req.user.userId;
     await client.query("BEGIN");
     const userResult = await client.query(
-      "SELECT name FROM users WHERE id = $1",
+      "SELECT name,email,created_at FROM users WHERE id = $1",
       [user_id]
     );
     //all transaction
-    const transactionResult = await client.query(
-      "SELECT transactions.amount,categories.type,transactions.transaction_date,categories.category_name FROM transactions INNER JOIN categories ON transactions.category_id=categories.id  WHERE transactions.user_id=$1",
-      [user_id]
-    );
+    // const transactionResult = await client.query(
+    //   "SELECT transactions.amount,categories.type,transactions.transaction_date,categories.category_name FROM transactions INNER JOIN categories ON transactions.category_id=categories.id  WHERE transactions.user_id=$1",
+    //   [user_id]
+    // );
     // total balance
     const totalBalance = await client.query(
       "SELECT SUM(balance) as total_balance  FROM accounts WHERE user_id = $1",
       [user_id]
     );
     await client.query("COMMIT");
-    console.log(transactionResult);
+    // console.log(transactionResult);
 
-    const transaction =
-      transactionResult.rowCount == 0 ? "empty" : transactionResult.rows;
+    // const transactions =
+    //   transactionResult.rowCount == 0 ? "empty" : transactionResult.rows;
     const total_balance =
       totalBalance.rowCount == 0 ? "empty" : totalBalance.rows[0].total_balance;
     const name = userResult.rows[0].name;
+    const email = userResult.rows[0].email;
+    const created_at = userResult.rows[0].created_at;
 
     return res.status(200).json({
-      transaction,
-      total_balance,
       name,
+      email,
+      created_at,
+      total_balance,
     });
   } catch (err) {
     if (client) await client.query("ROLLBACK");
@@ -309,6 +310,7 @@ const deleteAccount = async (req, res) => {
 };
 
 const addIncome = async (req, res) => {
+  console.log("add income callde");
   let client;
   try {
     client = await pool.connect();
@@ -343,6 +345,7 @@ const addIncome = async (req, res) => {
   }
 };
 const addExpense = async (req, res) => {
+  console.log("add income callde");
   let client;
   try {
     client = await pool.connect();
@@ -489,7 +492,7 @@ exports.default = {
   logOut,
   signUp,
   logIn,
-  mainpage,
+  userInformation,
   account,
   showAccount,
   deleteAccount,
