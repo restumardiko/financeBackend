@@ -321,8 +321,8 @@ const addIncome = async (req, res) => {
     await client.query("BEGIN");
 
     const updateTransaction = await client.query(
-      "INSERT INTO transactions(account_id,category_id,amount,note,transaction_date,user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [account_id, category_id, amount, note, transaction_date, user_id]
+      "INSERT INTO transactions(account_id,category_id,amount,note,user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      [account_id, category_id, amount, note, user_id]
     );
 
     await client.query(
@@ -350,14 +350,13 @@ const addExpense = async (req, res) => {
   try {
     client = await pool.connect();
     const user_id = req.user.userId;
-    const { account_id, category_id, amount, note, transaction_date } =
-      req.body;
+    const { account_id, category_id, amount, note } = req.body;
 
     await client.query("BEGIN");
 
     const updateTransaction = await client.query(
-      "INSERT INTO transactions(account_id,category_id,amount,note,transaction_date,user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [account_id, category_id, amount, note, transaction_date, user_id]
+      "INSERT INTO transactions(account_id,category_id,amount,note,user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      [account_id, category_id, amount, note, user_id]
     );
 
     await client.query(
@@ -388,7 +387,7 @@ const transactions = async (req, res) => {
     client.query("BEGIN");
 
     const result = await client.query(
-      `SELECT  categories.category_name,transactions.amount, transactions.note, categories.type,accounts.account_name,transactions.transaction_date FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1`,
+      `SELECT  categories.category_name,transactions.amount, transactions.note,transactions.created_at, categories.type,accounts.account_name FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1`,
       [user_id]
     );
     await client.query("COMMIT");
@@ -426,16 +425,8 @@ const editTransaction = async (req, res) => {
     await client.query("BEGIN");
 
     const result = await client.query(
-      `UPDATE transactions SET account_id=$1,category_id=$2,amount=$3,note=$4,transaction_date=$5 WHERE id=$6 AND user_id = $7 RETURNING *`,
-      [
-        account_id,
-        category_id,
-        amount,
-        note,
-        transaction_date,
-        transaction_id,
-        user_id,
-      ]
+      `UPDATE transactions SET account_id=$1,category_id=$2,amount=$3,note=$4 WHERE id=$5 AND user_id = $6 RETURNING *`,
+      [account_id, category_id, amount, note, transaction_id, user_id]
     );
     await client.query("COMMIT");
 
