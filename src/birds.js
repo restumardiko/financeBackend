@@ -13,8 +13,9 @@ router.get("/userInformation", handler.userInformation);
 router.post("/account", handler.account);
 router.get("/account", handler.showAccount);
 router.delete("/account", handler.deleteAccount);
-router.post("/income", handler.addIncome);
-router.post("/expense", handler.addExpense);
+router.post("/addTransaction", handler.addTransaction);
+
+router.get("/latestTransactions", handler.latestTransactions);
 router.get("/transactions", handler.transactions);
 router.put("/transaction/:transaction_id", handler.editTransaction);
 router.delete("/transaction/:transaction_id", handler.deleteTransaction);

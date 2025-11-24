@@ -227,6 +227,7 @@ const account = async (req, res) => {
 
       return res.status(200).json({
         message: "add account succesfully",
+        data: result.rows[0],
       });
     }
     await client.query("COMMIT");
@@ -309,43 +310,8 @@ const deleteAccount = async (req, res) => {
   }
 };
 
-const addIncome = async (req, res) => {
-  console.log("add income callde");
-  let client;
-  try {
-    client = await pool.connect();
-    const user_id = req.user.userId;
-    const { account_id, category_id, amount, note, transaction_date } =
-      req.body;
-
-    await client.query("BEGIN");
-
-    const updateTransaction = await client.query(
-      "INSERT INTO transactions(account_id,category_id,amount,note,user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [account_id, category_id, amount, note, user_id]
-    );
-
-    await client.query(
-      "UPDATE accounts SET balance = balance + $1 WHERE id = $2",
-      [amount, account_id]
-    );
-
-    await client.query("COMMIT");
-
-    return res.status(200).json({
-      message: "Income added successfully",
-      data: updateTransaction.rows[0],
-    });
-  } catch (err) {
-    if (client) await client.query("ROLLBACK");
-    console.error("DB ERROR:", err);
-    return res.status(500).json({ error: err.message });
-  } finally {
-    if (client) client.release();
-  }
-};
-const addExpense = async (req, res) => {
-  console.log("add income callde");
+const addTransaction = async (req, res) => {
+  console.log("add transaction");
   let client;
   try {
     client = await pool.connect();
@@ -359,16 +325,46 @@ const addExpense = async (req, res) => {
       [account_id, category_id, amount, note, user_id]
     );
 
-    await client.query(
-      "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
-      [amount, account_id]
-    );
-
     await client.query("COMMIT");
 
     return res.status(200).json({
-      message: "Expense added successfully",
+      message: "add transaction successfully",
       data: updateTransaction.rows[0],
+    });
+  } catch (err) {
+    if (client) await client.query("ROLLBACK");
+    console.error("DB ERROR:", err);
+    return res.status(500).json({ error: err.message });
+  } finally {
+    if (client) client.release();
+  }
+};
+
+const latestTransactions = async (req, res) => {
+  let client;
+  try {
+    client = await pool.connect();
+    const user_id = req.user.userId;
+    client.query("BEGIN");
+
+    const result = await client.query(
+      `SELECT  categories.category_name,transactions.amount, transactions.note,transactions.created_at, categories.type,accounts.account_name FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1 ORDER BY transactions.created_at DESC
+LIMIT 5 `,
+      [user_id]
+    );
+    await client.query("COMMIT");
+
+    if (result.rows.length === 0) {
+      return res.status(200).json({
+        message: "No transactions found",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      message: "data fetching successfully",
+
+      data: result.rows,
     });
   } catch (err) {
     if (client) await client.query("ROLLBACK");
@@ -387,7 +383,7 @@ const transactions = async (req, res) => {
     client.query("BEGIN");
 
     const result = await client.query(
-      `SELECT  categories.category_name,transactions.amount, transactions.note,transactions.created_at, categories.type,accounts.account_name FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1`,
+      `SELECT  categories.category_name,transactions.amount, transactions.note,transactions.created_at,accounts.account_name, categories.type,accounts.account_name FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1 ORDER BY transactions.created_at DESC`,
       [user_id]
     );
     await client.query("COMMIT");
@@ -484,11 +480,11 @@ exports.default = {
   signUp,
   logIn,
   userInformation,
+  latestTransactions,
   account,
   showAccount,
   deleteAccount,
-  addIncome,
-  addExpense,
+  addTransaction,
   transactions,
   editTransaction,
   deleteTransaction,
