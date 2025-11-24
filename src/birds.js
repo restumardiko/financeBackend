@@ -10,9 +10,9 @@ router.post("/logIn", handler.logIn);
 router.use(auth);
 
 router.get("/userInformation", handler.userInformation);
-router.post("/account", handler.account);
-router.get("/account", handler.showAccount);
-router.delete("/account", handler.deleteAccount);
+router.post("/addAccount", handler.addAccount);
+router.get("/showAccount", handler.showAccount);
+router.delete("/deleteAccount", handler.deleteAccount);
 router.post("/addTransaction", handler.addTransaction);
 
 router.get("/latestTransactions", handler.latestTransactions);

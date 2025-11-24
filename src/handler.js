@@ -163,28 +163,21 @@ const userInformation = async (req, res) => {
   try {
     client = await pool.connect();
     const user_id = req.user.userId;
-    await client.query("BEGIN");
+
     const userResult = await client.query(
       "SELECT name,email,created_at FROM users WHERE id = $1",
       [user_id]
     );
-    //all transaction
-    // const transactionResult = await client.query(
-    //   "SELECT transactions.amount,categories.type,transactions.transaction_date,categories.category_name FROM transactions INNER JOIN categories ON transactions.category_id=categories.id  WHERE transactions.user_id=$1",
-    //   [user_id]
-    // );
+
     // total balance
-    const totalBalance = await client.query(
-      "SELECT SUM(balance) as total_balance  FROM accounts WHERE user_id = $1",
-      [user_id]
-    );
-    await client.query("COMMIT");
+    // const totalBalance = await client.query(``[user_id]);
+
     // console.log(transactionResult);
 
     // const transactions =
     //   transactionResult.rowCount == 0 ? "empty" : transactionResult.rows;
-    const total_balance =
-      totalBalance.rowCount == 0 ? "empty" : totalBalance.rows[0].total_balance;
+    //const total_balance =
+    // totalBalance.rowCount == 0 ? "empty" : totalBalance.rows[0].total_balance;
     const name = userResult.rows[0].name;
     const email = userResult.rows[0].email;
     const created_at = userResult.rows[0].created_at;
@@ -193,10 +186,9 @@ const userInformation = async (req, res) => {
       name,
       email,
       created_at,
-      total_balance,
+      // total_balance,
     });
   } catch (err) {
-    if (client) await client.query("ROLLBACK");
     console.error("DB ERROR:", err);
     return res.status(500).json({ error: err.message });
   } finally {
@@ -204,12 +196,12 @@ const userInformation = async (req, res) => {
   }
 };
 
-const account = async (req, res) => {
+const addAccount = async (req, res) => {
   let client;
   console.log("add account executed");
   try {
     client = await pool.connect();
-    const { name, account_type, balance } = req.body;
+    const { name, account_type, initial_balance } = req.body;
     const user_id = req.user.userId;
     await client.query("BEGIN");
     const result = await client.query(
@@ -219,8 +211,8 @@ const account = async (req, res) => {
 
     if (result.rowCount == 0) {
       const result = await client.query(
-        "INSERT INTO accounts (user_id,account_name,type,balance)VALUES ($1,$2,$3,$4)RETURNING *",
-        [user_id, name, account_type, balance]
+        "INSERT INTO accounts (user_id,account_name,type,initial_balance)VALUES ($1,$2,$3,$4)RETURNING *",
+        [user_id, name, account_type, initial_balance]
       );
       console.log("ini ketika sudah ditambahkan", result);
       await client.query("COMMIT");
@@ -243,7 +235,7 @@ const account = async (req, res) => {
     if (client) client.release();
   }
 };
-
+//revise
 const showAccount = async (req, res) => {
   let client;
   console.log("show all account");
@@ -251,17 +243,39 @@ const showAccount = async (req, res) => {
     client = await pool.connect();
     const user_id = req.user.userId;
 
-    await client.query("BEGIN");
-
     const result = await client.query(
-      "SELECT id,account_name,type,balance FROM accounts WHERE user_id=$1 ",
+      `
+  SELECT 
+    accounts.id AS account_id,
+    accounts.account_name,
+    accounts.initial_balance 
+      + COALESCE(
+          SUM(
+            CASE 
+              WHEN categories.type = 'Income' THEN transactions.amount 
+              WHEN categories.type = 'Expense' THEN -transactions.amount 
+            END
+          ), 
+        0
+      ) AS total_balance
+  FROM accounts
+  LEFT JOIN transactions 
+    ON transactions.account_id = accounts.id
+  LEFT JOIN categories 
+    ON categories.id = transactions.category_id
+  WHERE accounts.user_id = $1
+  GROUP BY 
+    accounts.id, 
+    accounts.account_name, 
+    accounts.initial_balance
+  `,
       [user_id]
     );
-    await client.query("COMMIT");
 
     if (result.rowCount == 0) {
-      res.status(200).json({
+      return res.status(200).json({
         message: "please add account",
+        data: [],
       });
     }
     return res.status(200).json({
@@ -269,7 +283,6 @@ const showAccount = async (req, res) => {
       data: result.rows,
     });
   } catch (err) {
-    if (client) await client.query("ROLLBACK");
     console.error("DB ERROR:", err);
     return res.status(500).json({ error: err.message });
   } finally {
@@ -345,14 +358,12 @@ const latestTransactions = async (req, res) => {
   try {
     client = await pool.connect();
     const user_id = req.user.userId;
-    client.query("BEGIN");
 
     const result = await client.query(
       `SELECT  categories.category_name,transactions.amount, transactions.note,transactions.created_at, categories.type,accounts.account_name FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1 ORDER BY transactions.created_at DESC
 LIMIT 5 `,
       [user_id]
     );
-    await client.query("COMMIT");
 
     if (result.rows.length === 0) {
       return res.status(200).json({
@@ -367,7 +378,6 @@ LIMIT 5 `,
       data: result.rows,
     });
   } catch (err) {
-    if (client) await client.query("ROLLBACK");
     console.error("DB ERROR:", err);
     return res.status(500).json({ error: err.message });
   } finally {
@@ -481,7 +491,7 @@ exports.default = {
   logIn,
   userInformation,
   latestTransactions,
-  account,
+  addAccount,
   showAccount,
   deleteAccount,
   addTransaction,
