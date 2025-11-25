@@ -170,7 +170,33 @@ const userInformation = async (req, res) => {
     );
 
     // total balance
-    // const totalBalance = await client.query(``[user_id]);
+    const totalBalance = await client.query(
+      `
+   SELECT 
+  SUM(account_balance) AS user_total_balance
+FROM (
+  SELECT
+    accounts.initial_balance 
+    + COALESCE(
+        SUM(
+          CASE 
+            WHEN categories.type = 'Income' THEN transactions.amount 
+            WHEN categories.type = 'Expense' THEN -transactions.amount 
+          END
+        ), 
+      0
+    ) AS account_balance
+  FROM accounts
+  LEFT JOIN transactions 
+    ON transactions.account_id = accounts.id
+  LEFT JOIN categories 
+    ON categories.id = transactions.category_id
+  WHERE accounts.user_id = $1
+  GROUP BY accounts.id, accounts.initial_balance
+) AS balances
+  `,
+      [user_id]
+    );
 
     // console.log(transactionResult);
 
@@ -181,12 +207,13 @@ const userInformation = async (req, res) => {
     const name = userResult.rows[0].name;
     const email = userResult.rows[0].email;
     const created_at = userResult.rows[0].created_at;
+    const total_balance = totalBalance.rows[0].user_total_balance;
 
     return res.status(200).json({
       name,
       email,
       created_at,
-      // total_balance,
+      total_balance,
     });
   } catch (err) {
     console.error("DB ERROR:", err);
@@ -201,7 +228,7 @@ const addAccount = async (req, res) => {
   console.log("add account executed");
   try {
     client = await pool.connect();
-    const { name, account_type, initial_balance } = req.body;
+    const { name, account_type, total_balance } = req.body;
     const user_id = req.user.userId;
     await client.query("BEGIN");
     const result = await client.query(
@@ -212,7 +239,7 @@ const addAccount = async (req, res) => {
     if (result.rowCount == 0) {
       const result = await client.query(
         "INSERT INTO accounts (user_id,account_name,type,initial_balance)VALUES ($1,$2,$3,$4)RETURNING *",
-        [user_id, name, account_type, initial_balance]
+        [user_id, name, account_type, total_balance]
       );
       console.log("ini ketika sudah ditambahkan", result);
       await client.query("COMMIT");
@@ -267,7 +294,7 @@ const showAccount = async (req, res) => {
   GROUP BY 
     accounts.id, 
     accounts.account_name, 
-    accounts.initial_balance
+    accounts.initial_balance 
   `,
       [user_id]
     );
