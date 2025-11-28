@@ -169,7 +169,14 @@ const userInformation = async (req, res) => {
       [user_id]
     );
 
+    //initial balance each account
+
+    const initialBalance = await client.query(
+      "SELECT accounts.account_name,accounts.initial_balance FROM accounts WHERE accounts.user_id=$1",
+      [user_id]
+    );
     // total balance
+
     const totalBalance = await client.query(
       `
    SELECT 
@@ -208,12 +215,15 @@ FROM (
     const email = userResult.rows[0].email;
     const created_at = userResult.rows[0].created_at;
     const total_balance = totalBalance.rows[0].user_total_balance;
+    const initial_balance = initialBalance.rows;
+    console.log("ini initial balance", initialBalance);
 
     return res.status(200).json({
       name,
       email,
       created_at,
       total_balance,
+      initial_balance,
     });
   } catch (err) {
     console.error("DB ERROR:", err);
