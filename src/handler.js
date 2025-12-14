@@ -308,6 +308,8 @@ const showAccount = async (req, res) => {
   `,
       [user_id]
     );
+    /// is deletable
+    // const isDeletable =
 
     if (result.rowCount == 0) {
       return res.status(200).json({
@@ -333,16 +335,26 @@ const deleteAccount = async (req, res) => {
   try {
     client = await pool.connect();
     const { account_id } = req.body;
+    console.log("ini account id", account_id);
     const user_id = req.user.userId;
     await client.query("BEGIN");
     const result = await client.query(
-      "DELETE FROM accounts WHERE id=$1 AND user_id=$2 RETURNING *",
+      `DELETE FROM accounts
+WHERE id = $1
+  AND user_id = $2
+  AND NOT EXISTS (
+    SELECT 1
+    FROM transactions
+    WHERE transactions.account_id = accounts.id
+  )
+RETURNING *`,
       [account_id, user_id]
     );
     await client.query("COMMIT");
     if (result.rows.length === 0) {
-      return res.status(200).json({
-        message: "No account found",
+      return res.status(400).json({
+        message:
+          "Account cannot be deleted because it has transactions or does not existt found",
         data: [],
       });
     }
