@@ -282,34 +282,53 @@ const showAccount = async (req, res) => {
 
     const result = await client.query(
       `
-  SELECT 
-    accounts.id AS account_id,
-    accounts.account_name,
-    accounts.initial_balance 
-      + COALESCE(
-          SUM(
-            CASE 
-              WHEN categories.type = 'Income' THEN transactions.amount 
-              WHEN categories.type = 'Expense' THEN -transactions.amount 
-            END
-          ), 
-        0
-      ) AS total_balance
-  FROM accounts
-  LEFT JOIN transactions 
-    ON transactions.account_id = accounts.id
-  LEFT JOIN categories 
-    ON categories.id = transactions.category_id
-  WHERE accounts.user_id = $1
-  GROUP BY 
-    accounts.id, 
-    accounts.account_name, 
-    accounts.initial_balance 
+ SELECT 
+  accounts.id AS account_id,
+  accounts.account_name,
+  accounts.initial_balance 
+    + COALESCE(
+        SUM(
+          CASE 
+            WHEN categories.type = 'Income' THEN transactions.amount 
+            WHEN categories.type = 'Expense' THEN -transactions.amount 
+          END
+        ), 
+      0
+    ) AS total_balance,
+
+
+  CASE 
+    WHEN COUNT(transactions.id) = 0 THEN true
+    ELSE false
+  END AS is_deletable
+
+FROM accounts
+LEFT JOIN transactions 
+  ON transactions.account_id = accounts.id
+LEFT JOIN categories 
+  ON categories.id = transactions.category_id
+WHERE accounts.user_id = $1
+GROUP BY 
+  accounts.id, 
+  accounts.account_name, 
+  accounts.initial_balance;
   `,
       [user_id]
     );
-    /// is deletable
-    // const isDeletable =
+    //     /// is deletable
+    //     const isDeletable = await client.query(
+    //       `SELECT
+    //   accounts.id,
+    //   accounts.account_name
+    // FROM accounts
+    // WHERE accounts.user_id = $1
+    //   AND NOT EXISTS (
+    //     SELECT 1
+    //     FROM transactions t
+    //     WHERE t.account_id = accounts.id
+    //   )`,
+    //       [user_id]
+    //     );
 
     if (result.rowCount == 0) {
       return res.status(200).json({
