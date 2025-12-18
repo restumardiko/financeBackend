@@ -428,7 +428,7 @@ const latestTransactions = async (req, res) => {
     const user_id = req.user.userId;
 
     const result = await client.query(
-      `SELECT  categories.category_name,transactions.amount, transactions.note,transactions.created_at, categories.type,accounts.account_name FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1 ORDER BY transactions.created_at DESC
+      `SELECT  categories.category_name,transactions.amount, transactions.note,transactions.id,transactions.created_at, categories.type,accounts.account_name FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1 ORDER BY transactions.created_at DESC
 LIMIT 5 `,
       [user_id]
     );
@@ -461,7 +461,7 @@ const transactions = async (req, res) => {
     client.query("BEGIN");
 
     const result = await client.query(
-      `SELECT  categories.category_name,transactions.amount, transactions.note,transactions.created_at,accounts.account_name, categories.type,accounts.account_name FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1 ORDER BY transactions.created_at DESC`,
+      `SELECT  categories.category_name,transactions.amount, transactions.note,transactions.created_at,transactions.id,accounts.account_name, categories.type,accounts.account_name FROM transactions LEFT JOIN categories ON  transactions.category_id = categories.id LEFT JOIN accounts ON transactions.account_id= accounts.id WHERE transactions.user_id=$1 ORDER BY transactions.created_at DESC`,
       [user_id]
     );
     await client.query("COMMIT");
@@ -521,9 +521,12 @@ const editTransaction = async (req, res) => {
 const deleteTransaction = async (req, res) => {
   let client;
   try {
-    client = pool.connect();
+    client = await pool.connect();
     const user_id = req.user.userId;
     const { transaction_id } = req.params;
+    console.log("ini transaction id", transaction_id);
+    console.log("ini user id", user_id);
+
     await client.query("BEGIN");
 
     const result = await client.query(

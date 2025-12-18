@@ -13,6 +13,7 @@ router.get("/userInformation", handler.userInformation);
 router.post("/addAccount", handler.addAccount);
 router.get("/showAccount", handler.showAccount);
 router.delete("/deleteAccount", handler.deleteAccount);
+router.delete("/deleteTransaction/:transaction_id", handler.deleteTransaction);
 router.post("/addTransaction", handler.addTransaction);
 
 router.get("/latestTransactions", handler.latestTransactions);
