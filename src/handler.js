@@ -1,9 +1,8 @@
 const bcrypt = require("bcryptjs");
-require("dotenv").config();
 
 const express = require("express");
 const app = express();
-const pool = require("../db/index.js");
+const pool = require("../db/pool.js");
 const jwt = require("jsonwebtoken");
 app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
@@ -525,18 +524,33 @@ const deleteTransaction = async (req, res) => {
     const user_id = req.user.userId;
     const { transaction_id } = req.params;
     console.log("ini transaction id", transaction_id);
-    console.log("ini user id", user_id);
+    //console.log("ini user id", user_id);
+    const now = new Date();
+    const startOfDay = new Date(
+      now.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) +
+        "T00:00:00+07:00"
+    );
+    const nextDay = new Date(startOfDay);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    // console.log("ini now", now);
+    // console.log("ini startofday", startOfDay);
+    // console.log("ini nextDay", nextDay);
 
     await client.query("BEGIN");
 
     const result = await client.query(
-      `DELETE FROM transactions WHERE id=$1 AND user_id=$2 RETURNING *`,
-      [transaction_id, user_id]
+      `DELETE FROM transactions
+       WHERE id=$1 AND user_id=$2
+      AND created_at >= $3
+      AND created_at <  $4 
+      RETURNING *`,
+      [transaction_id, user_id, startOfDay, nextDay]
     );
-    await await client.query("COMMIT");
+    await client.query("COMMIT");
     if (result.rows.length === 0) {
-      return res.status(200).json({
-        message: "No transactions found",
+      return res.status(404).json({
+        message: "Only transaction from today can be deleted ",
         data: [],
       });
     }

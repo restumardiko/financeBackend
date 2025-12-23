@@ -1,0 +1,2 @@
+-- seed.sql
+-- Dummy data for local / demo environment

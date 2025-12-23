@@ -1,8 +1,8 @@
+require("dotenv").config();
 const birds = require("./src/birds.js");
 const express = require("express");
 const app = express();
 const cookieParser = require("cookie-parser");
-require("dotenv").config();
 const cors = require("cors");
 
 const port = process.env.PORT || 2000;
