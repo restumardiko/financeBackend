@@ -8,7 +8,10 @@ const pool = new Pool({
   // port: process.env.DB_PORT,
   // database: process.env.DB_NAME,
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // wajib untuk Supabase
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
 module.exports = pool;
