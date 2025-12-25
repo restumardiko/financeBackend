@@ -133,7 +133,7 @@ const logIn = async (req, res) => {
       { expiresIn: "1h" }
     );
     const refreshToken = generateRefreshToken();
-    const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await client.query(
       "UPDATE users SET refresh_token = $1,refresh_token_expires=$2 WHERE id=$3",
       [refreshToken, expiresAt, result.rows[0].id]
